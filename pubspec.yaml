@@ -1,7 +1,8 @@
 name: stroke_canvas_flutter
-description: A new flutter plugin project.
+description: Robotpen笔迹画布.
 version: 0.0.1
-homepage:
+homepage: http://www.robotpen.com
+repository: https://github.com/PPWrite/stroke_canvas_flutter
 
 environment:
   sdk: ">=2.15.1 <3.0.0"
