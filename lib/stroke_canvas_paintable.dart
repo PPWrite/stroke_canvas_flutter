@@ -1,7 +1,11 @@
 part of 'stroke_canvas.dart';
 
+// 可绘制对象的抽象
 abstract class _StrokeCanvasPaintable {
+  /// 绘制到Canvas
   void paint(ui.Canvas canvas, Size size);
+
+  /// 释放数据
   void dispose();
 
   @override
@@ -11,15 +15,17 @@ abstract class _StrokeCanvasPaintable {
   bool operator ==(Object other);
 }
 
+/// 可绘制路径对象
 class _StrokeCanvasPaintablePath extends _StrokeCanvasPaintable {
-  _StrokeCanvasPaintablePath({Path? path, Color? color})
+  _StrokeCanvasPaintablePath({Path? path, Color? color, bool? isEraser})
       : path = path ?? Path(),
-        _color = color ?? Colors.black {
+        _color = color ?? Colors.black,
+        isEraser = isEraser ?? false {
     _cacheHash = hashValues(_cacheHash, _color.value);
   }
 
   int _cacheHash = 0;
-
+  bool isEraser;
   Path path;
   Color _color;
   Color get color => _color;
@@ -35,17 +41,25 @@ class _StrokeCanvasPaintablePath extends _StrokeCanvasPaintable {
   Paint get _paint => Paint()
     ..color = color
     ..isAntiAlias = true
-    ..style = PaintingStyle.fill;
+    ..style = PaintingStyle.fill
+    ..blendMode = isEraser ? BlendMode.clear : BlendMode.srcOver;
 
+  /// 添加一点
   void addPoint(_StrokeCanvasPoint point) {
+    // 就是绘制一个实心圆
     path.addArc(
         Rect.fromCircle(center: Offset(point.x, point.y), radius: point.w / 2),
         0,
         2 * pi);
     _isEmpty = false;
+    // 重新计算hash
     _cacheHash = hashValues(_cacheHash, point);
   }
 
+  /// 添加一条线。
+  /// 并不是简单的连成一条线，因为两个点可能宽度不同。
+  /// 而是同自行车链条图形，链条缠绕前大齿轮和后小齿轮，组成两头半圆中间梯形的现状，
+  /// 参数[p1]和][p2]就是两个齿轮的中心点。
   void addLine(
     _StrokeCanvasPoint p1,
     _StrokeCanvasPoint p2,
@@ -197,6 +211,7 @@ class _StrokeCanvasPaintableImage extends _StrokeCanvasPaintable {
   }
 }
 
+/// 可绘制对象的集合
 class _StrokeCanvasPaintableList extends _StrokeCanvasPaintable {
   final List<_StrokeCanvasPaintable> _drawables = [];
   List<_StrokeCanvasPaintable> get drawables => _drawables;
@@ -229,9 +244,11 @@ class _StrokeCanvasPaintableList extends _StrokeCanvasPaintable {
 
   @override
   void paint(ui.Canvas canvas, Size size) {
+    canvas.saveLayer(Rect.fromLTWH(0, 0, size.width, size.height), Paint());
     for (var item in drawables) {
       item.paint(canvas, size);
     }
+    canvas.restore();
   }
 
   @override

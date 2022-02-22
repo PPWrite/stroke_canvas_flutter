@@ -5,11 +5,22 @@ const String kStrokeCanvasPainterDefaultPenId = "robot_pen";
 class _StrokeCanvasPen {
   _StrokeCanvasPen({
     required this.onClosedPath,
+    this.isEraser = false,
+    this.eraserWidth = 30,
     this.lineColor = Colors.black,
     this.strokeWidth = 3,
     this.previousPoint,
-  }) : path = _StrokeCanvasPaintablePath(color: lineColor);
+  }) : path = _StrokeCanvasPaintablePath(
+            color: isEraser ? Colors.transparent : lineColor,
+            isEraser: isEraser);
 
+  /// 是否是橡皮模式
+  bool isEraser;
+
+  /// 默认的橡皮宽度。
+  double eraserWidth;
+
+  /// 关闭路径的回调
   void Function(_StrokeCanvasPaintablePath path) onClosedPath;
 
   /// 上一个点
@@ -26,21 +37,29 @@ class _StrokeCanvasPen {
 
   int pointCount = 0;
 
+  /// 触发关闭路径的阈值
+  final int closePathThreshold = 400;
+
+  /// 添加一个点
   void addPoint(_StrokeCanvasPoint point) {
+    // 将点添加到路径
     path.addPoint(point);
 
     pointCount++;
-    if (pointCount > 400) {
+    if (pointCount > closePathThreshold) {
+      // 如果点超过阈值，就关闭路径，避免累计太多影响绘制性能。
       pointCount = 0;
       closedPath();
     }
   }
 
+  // 添加一条线
   void addLine(_StrokeCanvasPoint p1, _StrokeCanvasPoint p2) {
+    // 将线添加到路径
     path.addLine(p1, p2);
 
     pointCount++;
-    if (pointCount > 400) {
+    if (pointCount > closePathThreshold) {
       pointCount = 0;
       closedPath();
     }
@@ -48,7 +67,10 @@ class _StrokeCanvasPen {
 
   void newPath() {
     pointCount = 0;
-    path = _StrokeCanvasPaintablePath(color: lineColor);
+    path = _StrokeCanvasPaintablePath(
+      color: isEraser ? Colors.transparent : lineColor,
+      isEraser: isEraser,
+    );
   }
 
   void closedPath() {
@@ -61,6 +83,7 @@ class _StrokeCanvasImage {
   _StrokeCanvasImage(this.image);
   ui.Image image;
   bool isDispose = false;
+
   void dispose() {
     if (isDispose) return;
 
