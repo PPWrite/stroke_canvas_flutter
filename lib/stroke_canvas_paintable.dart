@@ -17,32 +17,36 @@ abstract class _StrokeCanvasPaintable {
 
 /// 可绘制路径对象
 class _StrokeCanvasPaintablePath extends _StrokeCanvasPaintable {
-  _StrokeCanvasPaintablePath({Path? path, Color? color, bool? isEraser})
-      : path = path ?? Path(),
+  _StrokeCanvasPaintablePath({
+    Path? path,
+    Color? color,
+    this.isEraser = false,
+  })  : path = path ?? Path(),
         _color = color ?? Colors.black,
-        isEraser = isEraser ?? false {
+        _paint = Paint()
+          ..color = color ?? Colors.black
+          ..isAntiAlias = true
+          ..style = PaintingStyle.fill
+          ..filterQuality = ui.FilterQuality.medium
+          ..blendMode = isEraser ? BlendMode.clear : BlendMode.srcOver {
     _cacheHash = hashValues(_cacheHash, _color.value);
   }
 
   int _cacheHash = 0;
-  bool isEraser;
-  Path path;
+  final bool isEraser;
+  final Path path;
   Color _color;
+  final Paint _paint;
+
   Color get color => _color;
-  set color(ui.Color value) {
-    _color = value;
-    _cacheHash = hashValues(_cacheHash, _color.value);
+  set color(Color v) {
+    _color = v;
+    _paint.color = v;
   }
 
   bool _isEmpty = true;
   bool get isEmpty => _isEmpty;
   bool get isNotEmpty => !_isEmpty;
-
-  Paint get _paint => Paint()
-    ..color = color
-    ..isAntiAlias = true
-    ..style = PaintingStyle.fill
-    ..blendMode = isEraser ? BlendMode.clear : BlendMode.srcOver;
 
   /// 添加一点
   void addPoint(_StrokeCanvasPoint point) {
@@ -64,6 +68,11 @@ class _StrokeCanvasPaintablePath extends _StrokeCanvasPaintable {
     _StrokeCanvasPoint p1,
     _StrokeCanvasPoint p2,
   ) {
+    _isEmpty = false;
+
+    _cacheHash = hashValues(_cacheHash, p1);
+    _cacheHash = hashValues(_cacheHash, p2);
+
     // 两个点相减得到一个向量， 并进行标准化，然后逆时针旋转90度。
     final perpendicular = (p2 - p1).normalize().perpendicular();
 
@@ -119,15 +128,12 @@ class _StrokeCanvasPaintablePath extends _StrokeCanvasPaintable {
 
     // 上边框
     path.lineTo(pa.x, pa.y);
-
-    _isEmpty = false;
-
-    _cacheHash = hashValues(_cacheHash, p1);
-    _cacheHash = hashValues(_cacheHash, p2);
   }
 
   @override
-  void paint(ui.Canvas canvas, Size size) => canvas.drawPath(path, _paint);
+  void paint(ui.Canvas canvas, Size size) {
+    canvas.drawPath(path, _paint);
+  }
 
   @override
   void dispose() {}
@@ -192,6 +198,7 @@ class _StrokeCanvasPaintableImage extends _StrokeCanvasPaintable {
       alignment: alignment,
       colorFilter: colorFilter,
       isAntiAlias: true,
+      filterQuality: ui.FilterQuality.medium,
     );
 
     canvas.restore();
@@ -211,33 +218,76 @@ class _StrokeCanvasPaintableImage extends _StrokeCanvasPaintable {
   }
 }
 
-/// 可绘制对象的集合
-class _StrokeCanvasPaintableList extends _StrokeCanvasPaintable {
-  final List<_StrokeCanvasPaintable> _drawables = [];
-  List<_StrokeCanvasPaintable> get drawables => _drawables;
+class _StrokeCanvasPaintablePictrue extends _StrokeCanvasPaintable {
+  _StrokeCanvasPaintablePictrue({
+    required this.picture,
+    required this.width,
+    required this.height,
+    this.pixelRatio = 1,
+  }) {
+    _cacheHash = hashValues(_cacheHash, picture);
+  }
+  final ui.Picture picture;
+  final double width;
+  final double height;
+  final double pixelRatio;
+
+  @override
+  void dispose() {
+    picture.dispose();
+  }
 
   int _cacheHash = 0;
 
-  int get length => _drawables.length;
-
-  void add(_StrokeCanvasPaintable drawable) {
-    _drawables.add(drawable);
-    _cacheHash = ui.hashValues(_cacheHash, drawable);
+  @override
+  void paint(ui.Canvas canvas, ui.Size size) {
+    canvas.save();
+    canvas.scale(1 / pixelRatio, 1 / pixelRatio);
+    canvas.clipRect(Rect.fromLTWH(0, 0, width, height));
+    canvas.drawPicture(picture);
+    canvas.restore();
   }
 
-  void append(_StrokeCanvasPaintableList list) {
-    _drawables.addAll(list._drawables);
-    _cacheHash = ui.hashValues(_cacheHash, list);
+  @override
+  int get hashCode => _cacheHash;
+
+  @override
+  bool operator ==(Object other) {
+    return other is _StrokeCanvasPaintablePictrue && hashCode == other.hashCode;
+  }
+}
+
+/// 可绘制对象的集合
+class _StrokeCanvasPaintableList<M extends _StrokeCanvasPaintable>
+    extends _StrokeCanvasPaintable implements List<M> {
+  final List<M> _paintables = [];
+  List<M> get paintables => _paintables;
+
+  int _cacheHash = 0;
+
+  @override
+  int get length => _paintables.length;
+
+  @override
+  void add(M paintable) {
+    _paintables.add(paintable);
+    _cacheHash = ui.hashValues(_cacheHash, paintable);
   }
 
-  void insert(int index, _StrokeCanvasPaintable drawable) {
-    _drawables.insert(index, drawable);
-    _cacheHash = ui.hashValues(_cacheHash, drawable, index);
+  void append(_StrokeCanvasPaintableList<M> list) {
+    _paintables.addAll(list._paintables);
+    _cacheHash = ui.hashValues(_cacheHash, list.hashCode);
+  }
+
+  @override
+  void insert(int index, M paintable) {
+    _paintables.insert(index, paintable);
+    _cacheHash = ui.hashValues(_cacheHash, paintable, index);
   }
 
   @override
   void dispose() {
-    for (var item in drawables) {
+    for (var item in paintables) {
       item.dispose();
     }
   }
@@ -245,7 +295,7 @@ class _StrokeCanvasPaintableList extends _StrokeCanvasPaintable {
   @override
   void paint(ui.Canvas canvas, Size size) {
     canvas.saveLayer(Rect.fromLTWH(0, 0, size.width, size.height), Paint());
-    for (var item in drawables) {
+    for (var item in paintables) {
       item.paint(canvas, size);
     }
     canvas.restore();
@@ -257,5 +307,281 @@ class _StrokeCanvasPaintableList extends _StrokeCanvasPaintable {
   @override
   bool operator ==(Object other) {
     return other is _StrokeCanvasPaintableList && hashCode == other.hashCode;
+  }
+
+  @override
+  bool any(bool Function(M element) test) {
+    return _paintables.any(test);
+  }
+
+  @override
+  bool contains(Object? element) {
+    return _paintables.contains(element);
+  }
+
+  @override
+  M elementAt(int i) {
+    return _paintables.elementAt(i);
+  }
+
+  @override
+  bool every(bool Function(M element) test) {
+    return _paintables.every(test);
+  }
+
+  @override
+  Iterable<T> expand<T>(Iterable<T> Function(M element) toElements) {
+    return _paintables.expand(toElements);
+  }
+
+  @override
+  M get first => _paintables.first;
+
+  @override
+  M firstWhere(bool Function(M element) test, {M Function()? orElse}) {
+    return _paintables.firstWhere(test, orElse: orElse);
+  }
+
+  @override
+  T fold<T>(T initialValue, T Function(T previousValue, M element) combine) {
+    return _paintables.fold(initialValue, combine);
+  }
+
+  @override
+  Iterable<M> followedBy(Iterable<M> other) {
+    return _paintables.followedBy(other);
+  }
+
+  @override
+  void forEach(void Function(M element) action) {
+    _paintables.forEach(action);
+  }
+
+  @override
+  bool get isEmpty => _paintables.isEmpty;
+
+  @override
+  bool get isNotEmpty => _paintables.isNotEmpty;
+
+  @override
+  Iterator<M> get iterator => _paintables.iterator;
+
+  @override
+  String join([String separator = ""]) {
+    return _paintables.join(separator);
+  }
+
+  @override
+  M get last => _paintables.last;
+
+  @override
+  M lastWhere(bool Function(M element) test, {M Function()? orElse}) {
+    return _paintables.lastWhere(test, orElse: orElse);
+  }
+
+  @override
+  Iterable<T> map<T>(T Function(M element) toElement) {
+    return _paintables.map(toElement);
+  }
+
+  @override
+  M reduce(M Function(M value, M element) combine) {
+    return _paintables.reduce(combine);
+  }
+
+  @override
+  M get single => _paintables.single;
+
+  @override
+  M singleWhere(bool Function(M element) test, {M Function()? orElse}) {
+    return _paintables.singleWhere(test, orElse: orElse);
+  }
+
+  @override
+  Iterable<M> skip(int count) {
+    return _paintables.skip(count);
+  }
+
+  @override
+  Iterable<M> skipWhile(bool Function(M element) test) {
+    return _paintables.skipWhile(test);
+  }
+
+  @override
+  Iterable<M> take(int count) {
+    return _paintables.take(count);
+  }
+
+  @override
+  Iterable<M> takeWhile(bool Function(M element) test) {
+    return _paintables.takeWhile(test);
+  }
+
+  @override
+  List<M> toList({bool growable = true}) {
+    return _paintables.toList(growable: growable);
+  }
+
+  @override
+  Set<M> toSet() {
+    return _paintables.toSet();
+  }
+
+  @override
+  Iterable<M> where(bool Function(M element) test) {
+    return _paintables.where(test);
+  }
+
+  @override
+  Iterable<T> whereType<T>() {
+    return _paintables.whereType();
+  }
+
+  @override
+  List<M> operator +(List<M> other) {
+    return _paintables + other;
+  }
+
+  @override
+  M operator [](int index) {
+    return _paintables[index];
+  }
+
+  @override
+  void operator []=(int index, M value) {
+    _paintables[index] = value;
+  }
+
+  @override
+  void addAll(Iterable<M> iterable) {
+    _paintables.addAll(iterable);
+  }
+
+  @override
+  Map<int, M> asMap() {
+    return _paintables.asMap();
+  }
+
+  @override
+  List<R> cast<R>() {
+    return _paintables.cast();
+  }
+
+  @override
+  void clear() {
+    _paintables.clear();
+  }
+
+  @override
+  void fillRange(int start, int end, [M? fillValue]) {
+    _paintables.fillRange(start, end, fillValue);
+  }
+
+  @override
+  set first(M value) {
+    _paintables.first = value;
+  }
+
+  @override
+  Iterable<M> getRange(int start, int end) {
+    return _paintables.getRange(start, end);
+  }
+
+  @override
+  int indexOf(M element, [int start = 0]) {
+    return _paintables.indexOf(element, start);
+  }
+
+  @override
+  int indexWhere(bool Function(M element) test, [int start = 0]) {
+    return _paintables.indexWhere(test, start);
+  }
+
+  @override
+  void insertAll(int index, Iterable<M> iterable) {
+    _paintables.insertAll(index, iterable);
+  }
+
+  @override
+  set last(M value) {
+    _paintables.last = value;
+  }
+
+  @override
+  int lastIndexOf(M element, [int? start]) {
+    return lastIndexOf(element, start);
+  }
+
+  @override
+  int lastIndexWhere(bool Function(M element) test, [int? start]) {
+    return _paintables.lastIndexWhere(test, start);
+  }
+
+  @override
+  set length(int newLength) {
+    _paintables.length = newLength;
+  }
+
+  @override
+  bool remove(Object? value) {
+    return _paintables.remove(value);
+  }
+
+  @override
+  M removeAt(int index) {
+    return _paintables.removeAt(index);
+  }
+
+  @override
+  M removeLast() {
+    return _paintables.removeLast();
+  }
+
+  @override
+  void removeRange(int start, int end) {
+    _paintables.removeRange(start, end);
+  }
+
+  @override
+  void removeWhere(bool Function(M element) test) {
+    _paintables.removeWhere(test);
+  }
+
+  @override
+  void replaceRange(int start, int end, Iterable<M> replacements) {
+    _paintables.replaceRange(start, end, replacements);
+  }
+
+  @override
+  void retainWhere(bool Function(M element) test) {
+    _paintables.retainWhere(test);
+  }
+
+  @override
+  Iterable<M> get reversed => _paintables.reversed;
+
+  @override
+  void setAll(int index, Iterable<M> iterable) {
+    _paintables.setAll(index, iterable);
+  }
+
+  @override
+  void setRange(int start, int end, Iterable<M> iterable, [int skipCount = 0]) {
+    _paintables.setRange(start, end, iterable);
+  }
+
+  @override
+  void shuffle([Random? random]) {
+    _paintables.shuffle(random);
+  }
+
+  @override
+  void sort([int Function(M a, M b)? compare]) {
+    _paintables.sort(compare);
+  }
+
+  @override
+  List<M> sublist(int start, [int? end]) {
+    return sublist(start, end);
   }
 }

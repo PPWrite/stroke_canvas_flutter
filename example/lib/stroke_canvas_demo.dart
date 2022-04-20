@@ -23,8 +23,9 @@ class _StrokeCanvasDemoState extends State<StrokeCanvasDemo> {
   late double dy = 175;
   @override
   Widget build(BuildContext context) {
-    _painter.setEraserWidth(100);
     if (_canvasSize == null) {
+      _painter.setEraserWidth(100);
+      _painter.setStrokeWidth(1.5);
       final mq = MediaQuery.of(context);
       final size = Size(
         mq.size.width - mq.padding.left - mq.padding.right,
@@ -40,59 +41,63 @@ class _StrokeCanvasDemoState extends State<StrokeCanvasDemo> {
 
     return GestureDetector(
       onPanStart: (details) {
-        if (isEraser) {
-          dx = details.localPosition.dx;
-          dy = details.localPosition.dy;
-          setState(() {});
-        }
-        final point = details.localPosition;
-        _painter.drawPoint(point.dx, point.dy);
+        _painter.drawPoint(details.localPosition.dx, details.localPosition.dy);
       },
       onPanUpdate: (details) {
-        if (isEraser) {
-          dx = details.localPosition.dx;
-          dy = details.localPosition.dy;
-          setState(() {});
-        }
-        final point = details.localPosition;
-        _painter.drawPoint(point.dx, point.dy);
+        _painter.drawPoint(details.localPosition.dx, details.localPosition.dy);
       },
       onPanEnd: (details) {
         _painter.newLine();
       },
-      onPanDown: (detail) {
-        Rect rect =
-            Rect.fromCenter(center: Offset(dx, dy), width: 50, height: 50);
-        isEraser = rect.contains(detail.localPosition);
-        _painter.setIsEraser(isEraser);
-      },
       child: Stack(
+        fit: StackFit.expand,
         children: [
-          SizedBox(
-            width: _canvasSize!.width,
-            height: _canvasSize!.height,
-            child: StrokeCanvas(
-              painter: _painter,
-              size: _canvasSize,
-            ),
+          StrokeCanvas(
+            painter: _painter,
+            size: _canvasSize,
           ),
-          Positioned(
-            child: initFloatingActionButton,
-            bottom: 100,
-            right: 100,
-          ),
-          Positioned(
-            child: FloatingActionButton(
-              backgroundColor: Colors.red,
-              onPressed: () {},
-              child: const Icon(
-                CupertinoIcons.paintbrush_fill,
-                color: Colors.white,
-                size: 50.0,
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 30),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  initFloatingActionButton,
+                  FloatingActionButton(
+                    elevation: 1,
+                    focusElevation: 1,
+                    backgroundColor: Colors.red,
+                    onPressed: () {
+                      setState(() {
+                        isEraser = !isEraser;
+                      });
+                      _painter.setIsEraser(isEraser);
+                    },
+                    child: Icon(
+                      CupertinoIcons.paintbrush_fill,
+                      color: isEraser ? Colors.green : Colors.white,
+                      size: 30.0,
+                    ),
+                  ),
+                  FloatingActionButton(
+                    elevation: 1,
+                    focusElevation: 1,
+                    backgroundColor: Colors.blue,
+                    onPressed: () {
+                      _autoDraw = !_autoDraw;
+                      _painter.newLine();
+                      autoDraw();
+                    },
+                    child: const Icon(
+                      CupertinoIcons.rocket,
+                      color: Colors.white,
+                      size: 30.0,
+                    ),
+                  )
+                ],
               ),
             ),
-            left: dx - 25,
-            top: dy - 25,
           ),
         ],
       ),
@@ -105,12 +110,45 @@ class _StrokeCanvasDemoState extends State<StrokeCanvasDemo> {
     _painter.dispose();
   }
 
+  bool _autoDraw = false;
+  double _autoDrawPoint = 0;
+  int _autoDrawCount = 0;
+  Future<void> autoDraw() async {
+    if (!_autoDraw) return;
+
+    final size = _canvasSize;
+    await Future.delayed(const Duration(milliseconds: 1), () {
+      if (size == null) return;
+      final x = _autoDrawPoint % size.width;
+      final y = _autoDrawPoint / size.width;
+      _painter.drawPoint(x, y + 100);
+
+      _autoDrawPoint += 0.5;
+      _autoDrawCount++;
+
+      print("_autoDrawCount: $_autoDrawCount");
+      if (_autoDrawPoint > size.width) {
+        _painter.newLine();
+      } else if (_autoDrawPoint > size.width * size.height) {
+        _painter.newLine();
+        _autoDrawPoint = 0;
+      }
+    });
+
+    if (_autoDraw) {
+      autoDraw();
+    }
+  }
+
   Widget get initFloatingActionButton {
     return FloatingActionButton(
       backgroundColor: Colors.grey,
       elevation: 1,
       focusElevation: 1,
       onPressed: () {
+        _autoDrawCount = 0;
+        _autoDrawPoint = 0;
+        _autoDraw = false;
         _painter.clean();
       },
       child: const Icon(Icons.clear),

@@ -16,9 +16,9 @@ class StrokeCanvasPainter {
         _sizeWidth = size.width * pixelRatio,
         _sizeHeight = size.height * pixelRatio {
     final info = _getPen(kStrokeCanvasPainterDefaultPenId);
-    info.lineColor = lineColor;
     info.strokeWidth = strokeWidth;
     info.eraserWidth = eraserWidth;
+    info.lineColor = lineColor;
     info.isEraser = false;
   }
 
@@ -233,10 +233,10 @@ class StrokeCanvasPainter {
       value.newPath();
     });
 
-    _drawables.dispose();
-    _drawables = _StrokeCanvasPaintableList();
-    _mergingDrawables.dispose();
-    _mergingDrawables = _StrokeCanvasPaintableList();
+    _paintables.dispose();
+    _paintables = _StrokeCanvasPaintableList();
+    _mergingPaintables.dispose();
+    _mergingPaintables = _StrokeCanvasPaintableList();
 
     _isShouldPaint = true;
   }
@@ -258,8 +258,8 @@ class StrokeCanvasPainter {
       img = await _createEmptyImage();
     } else {
       _StrokeCanvasPaintableList _trailPaths = _StrokeCanvasPaintableList();
-      _trailPaths.append(_mergingDrawables);
-      _trailPaths.append(_drawables);
+      _trailPaths.append(_mergingPaintables);
+      _trailPaths.append(_paintables);
       for (var info in _pens.values) {
         if (info.path.isNotEmpty) {
           _trailPaths.add(info.path);
@@ -302,7 +302,7 @@ class StrokeCanvasPainter {
     var info = _pens[penId];
     if (info == null) {
       // 创建笔信息，并且在笔关闭绘制路径的回调中绘制路径
-      info = _StrokeCanvasPen(onClosedPath: (path) => _addDrawable(path));
+      info = _StrokeCanvasPen(onClosedPath: (path) => _addPaintable(path));
       _pens[penId] = info;
     }
 
@@ -313,11 +313,11 @@ class StrokeCanvasPainter {
   /// 此集合中往往存放着很多矢量图片数据，矢量数据太多会严重拖累绘制性能，
   /// 所以当数量超过[_mergeThreshold]后，需要将矢量数据转成位图数据，
   /// 这个转成位图的过程称为“合并”。
-  _StrokeCanvasPaintableList _drawables = _StrokeCanvasPaintableList();
+  _StrokeCanvasPaintableList _paintables = _StrokeCanvasPaintableList();
 
   /// 合并中的可绘制对象集合。
-  /// 合并前会将[_drawables]集合中的对象转移到这个集合中，等待进行合并。
-  _StrokeCanvasPaintableList _mergingDrawables = _StrokeCanvasPaintableList();
+  /// 合并前会将[_paintables]集合中的对象转移到这个集合中，等待进行合并。
+  _StrokeCanvasPaintableList _mergingPaintables = _StrokeCanvasPaintableList();
 
   /// 触发合并操作的阈值。
   final int _mergeThreshold = 10;
@@ -420,31 +420,31 @@ class StrokeCanvasPainter {
       colorFilter: colorFilter,
     );
 
-    _addDrawable(img);
+    _addPaintable(img);
   }
 
   // 添加可绘制对象
-  void _addDrawable(_StrokeCanvasPaintable d, [int? insertIdx]) {
+  void _addPaintable(_StrokeCanvasPaintable d, [int? insertIdx]) {
     if (insertIdx != null) {
-      _drawables.insert(insertIdx, d);
+      _paintables.insert(insertIdx, d);
     } else {
-      _drawables.add(d);
+      _paintables.add(d);
     }
 
-    if (_drawables.length >= _mergeThreshold) {
+    if (_paintables.length >= _mergeThreshold) {
       // 但数量大于等于10时，合并可绘制对象，节约内存和性能。
-      _mergingDrawables.append(_drawables);
-      _drawables = _StrokeCanvasPaintableList();
-      _mergeDrawables();
+      _mergingPaintables.append(_paintables);
+      _paintables = _StrokeCanvasPaintableList();
+      _mergePaintables();
     }
   }
 
   /// 合并可绘制对象
-  Future<void> _mergeDrawables() async {
+  Future<void> _mergePaintables() async {
     // 存储一下画布清理次数
     final tage = _cleanCount;
     // 将可绘制对象绘制到位图中，异步操作
-    final image = await _paintToImage(_mergingDrawables);
+    final image = await _paintToImage(_mergingPaintables);
 
     // 如果合并完成后，画布清理数据没有变，说明画布没进行清理操作
     if (tage == _cleanCount) {
@@ -456,11 +456,11 @@ class StrokeCanvasPainter {
       );
 
       // 重新插入到可绘制对象集合中的第一个位置
-      _addDrawable(img, 0);
+      _addPaintable(img, 0);
       // 释放数据
-      _mergingDrawables.dispose();
+      _mergingPaintables.dispose();
       // 新建列表
-      _mergingDrawables = _StrokeCanvasPaintableList();
+      _mergingPaintables = _StrokeCanvasPaintableList();
       // 标记当前需要绘制
       _isShouldPaint = true;
     } else {
@@ -469,21 +469,25 @@ class StrokeCanvasPainter {
     }
   }
 
-  Future<ui.Image> _paintToImage(_StrokeCanvasPaintableList drawbles) async {
-    final recorder = ui.PictureRecorder();
-    Canvas canvas = Canvas(recorder);
-    canvas.clipRect(Rect.fromLTWH(0, 0, _sizeWidth, _sizeHeight));
-    canvas.scale(_pixelRatio);
-
-    drawbles.paint(canvas, ui.Size(_sizeWidth, _sizeHeight));
-
-    final p = recorder.endRecording();
+  Future<ui.Image> _paintToImage(_StrokeCanvasPaintable drawble) async {
+    final p = _paintToPicture(drawble);
 
     final image = await p.toImage(_sizeWidth.toInt(), _sizeHeight.toInt());
 
     p.dispose();
 
     return image;
+  }
+
+  ui.Picture _paintToPicture(_StrokeCanvasPaintable drawble) {
+    final recorder = ui.PictureRecorder();
+    Canvas canvas = Canvas(recorder);
+    canvas.clipRect(Rect.fromLTWH(0, 0, _sizeWidth, _sizeHeight));
+    canvas.scale(_pixelRatio);
+
+    drawble.paint(canvas, ui.Size(_sizeWidth, _sizeHeight));
+
+    return recorder.endRecording();
   }
 
   /// 创建空的图片

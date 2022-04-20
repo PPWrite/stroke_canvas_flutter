@@ -5,17 +5,19 @@ const String kStrokeCanvasPainterDefaultPenId = "robot_pen";
 class _StrokeCanvasPen {
   _StrokeCanvasPen({
     required this.onClosedPath,
-    this.isEraser = false,
-    this.eraserWidth = 30,
-    this.lineColor = Colors.black,
     this.strokeWidth = 3,
+    Color lineColor = Colors.black,
+    bool isEraser = false,
+    this.eraserWidth = 30,
     this.previousPoint,
-  }) : path = _StrokeCanvasPaintablePath(
+  })  : _lineColor = lineColor,
+        path = _StrokeCanvasPaintablePath(
             color: isEraser ? Colors.transparent : lineColor,
-            isEraser: isEraser);
+            isEraser: isEraser),
+        _isEraser = isEraser;
 
-  /// 是否是橡皮模式
-  bool isEraser;
+  /// 默认的笔画宽度。
+  double strokeWidth;
 
   /// 默认的橡皮宽度。
   double eraserWidth;
@@ -26,11 +28,26 @@ class _StrokeCanvasPen {
   /// 上一个点
   _StrokeCanvasPoint? previousPoint;
 
-  /// 默认的笔画颜色
-  Color lineColor;
+  bool _isEraser;
 
-  /// 默认的笔画宽度。
-  double strokeWidth;
+  /// 是否是橡皮模式
+  bool get isEraser => _isEraser;
+  set isEraser(bool value) {
+    if (value == _isEraser) return;
+    _isEraser = value;
+    closedPath();
+  }
+
+  /// 默认的笔画颜色
+  Color _lineColor;
+
+  /// 默认的笔画颜色
+  Color get lineColor => _lineColor;
+  set lineColor(Color v) {
+    if (v == _lineColor) return;
+    _lineColor = v;
+    closedPath();
+  }
 
   /// 绘制的路径
   _StrokeCanvasPaintablePath path;
@@ -38,7 +55,7 @@ class _StrokeCanvasPen {
   int pointCount = 0;
 
   /// 触发关闭路径的阈值
-  final int closePathThreshold = 400;
+  final int closePathThreshold = 800;
 
   /// 添加一个点
   void addPoint(_StrokeCanvasPoint point) {
@@ -68,13 +85,12 @@ class _StrokeCanvasPen {
   void newPath() {
     pointCount = 0;
     path = _StrokeCanvasPaintablePath(
-      color: isEraser ? Colors.transparent : lineColor,
-      isEraser: isEraser,
-    );
+        color: _isEraser ? Colors.transparent : _lineColor,
+        isEraser: _isEraser);
   }
 
   void closedPath() {
-    onClosedPath(path);
+    if (path.isNotEmpty) onClosedPath(path);
     newPath();
   }
 }

@@ -30,22 +30,23 @@ class _StrokeCanvasState extends State<StrokeCanvas>
   @override
   void initState() {
     super.initState();
+    ui.Paint.enableDithering = true;
     // 帧回调
     _canvsTicker = createTicker((elapsed) => _drawIfNeed())..start();
   }
 
   @override
   Widget build(BuildContext context) {
-    _StrokeCanvasPaintableList _drawableList = _StrokeCanvasPaintableList();
+    _StrokeCanvasPaintableList _paintableList = _StrokeCanvasPaintableList();
     // 以下顺序不可乱：
     // 1. 添加正在合并中的可绘制对象，因为这些事最早绘制的数据
-    _drawableList.append(widget.painter._mergingDrawables);
+    _paintableList.append(widget.painter._mergingPaintables);
     // 2. 添加可绘制对象
-    _drawableList.append(widget.painter._drawables);
+    _paintableList.append(widget.painter._paintables);
     // 3. 添加还没关闭的路径，这些事最新的绘制数据
     for (var info in widget.painter._pens.values) {
       if (info.path.isNotEmpty) {
-        _drawableList.add(info.path);
+        _paintableList.add(info.path);
       }
     }
 
@@ -53,7 +54,7 @@ class _StrokeCanvasState extends State<StrokeCanvas>
       child: CustomPaint(
         isComplex: true,
         painter: _StrokeCanvasCustomPainter(
-          drawableList: _drawableList,
+          paintable: _paintableList,
         ),
         size: widget.size ?? Size.zero,
       ),
@@ -78,19 +79,19 @@ class _StrokeCanvasState extends State<StrokeCanvas>
 }
 
 class _StrokeCanvasCustomPainter extends CustomPainter {
-  _StrokeCanvasPaintableList? drawableList;
+  _StrokeCanvasPaintable? paintable;
 
   _StrokeCanvasCustomPainter({
-    this.drawableList,
+    this.paintable,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    drawableList?.paint(canvas, size);
+    paintable?.paint(canvas, size);
   }
 
   @override
   bool shouldRepaint(_StrokeCanvasCustomPainter oldDelegate) {
-    return drawableList != oldDelegate.drawableList;
+    return paintable != oldDelegate.paintable;
   }
 }
