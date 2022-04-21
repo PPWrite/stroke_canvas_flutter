@@ -1,6 +1,10 @@
+## 0.0.4
+
+* Optimize code structure.
+
 ## 0.0.3
 
-* Optimized drawing effect. 
+* Optimized drawing effect.
 
 ## 0.0.2
 
@@ -9,5 +13,3 @@
 ## 0.0.1
 
 * first version.
-
-

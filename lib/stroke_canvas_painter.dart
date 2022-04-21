@@ -13,8 +13,8 @@ class StrokeCanvasPainter {
         assert(strokeWidth > 0),
         _size = size,
         _pixelRatio = pixelRatio,
-        _sizeWidth = size.width * pixelRatio,
-        _sizeHeight = size.height * pixelRatio {
+        _sizeWidth = (size.width * pixelRatio).ceil().toDouble(),
+        _sizeHeight = (size.height * pixelRatio).ceil().toDouble() {
     final info = _getPen(kStrokeCanvasPainterDefaultPenId);
     info.strokeWidth = strokeWidth;
     info.eraserWidth = eraserWidth;
@@ -35,9 +35,9 @@ class StrokeCanvasPainter {
     _size = value;
 
     // 计算绘制大小
-    _sizeWidth = value.width * pixelRatio;
+    _sizeWidth = (value.width * pixelRatio).ceil().toDouble();
 
-    _sizeHeight = value.height * pixelRatio;
+    _sizeHeight = (value.height * pixelRatio).ceil().toDouble();
   }
 
   /// 绘制宽度
@@ -218,7 +218,6 @@ class StrokeCanvasPainter {
       alignment: alignment,
       fit: fit,
       colorFilter: colorFilter,
-      needDraw: false,
     );
   }
 
@@ -255,18 +254,18 @@ class StrokeCanvasPainter {
   Future<ui.Image> getDrawnImage() async {
     ui.Image img;
     if (_isDispose) {
-      img = await _createEmptyImage();
+      img = await _createEmptyImage(_sizeWidth, _sizeHeight);
     } else {
       _StrokeCanvasPaintableList _trailPaths = _StrokeCanvasPaintableList();
-      _trailPaths.append(_mergingPaintables);
-      _trailPaths.append(_paintables);
+      _trailPaths.addAll(_mergingPaintables);
+      _trailPaths.addAll(_paintables);
       for (var info in _pens.values) {
         if (info.path.isNotEmpty) {
           _trailPaths.add(info.path);
         }
       }
 
-      img = await _paintToImage(_trailPaths);
+      img = await _paintToImage(_trailPaths, _sizeWidth, _sizeHeight);
     }
 
     return img;
@@ -335,7 +334,11 @@ class StrokeCanvasPainter {
     double penW = width ?? strokeWidth;
     double eraserW = width ?? eraserWidth;
     //设置笔宽度和橡皮宽度
-    final point = _StrokeCanvasPoint(x, y, w: isEraser ? eraserW : penW);
+    final point = _StrokeCanvasPoint(
+      x * _pixelRatio,
+      y * _pixelRatio,
+      w: (isEraser ? eraserW : penW) * _pixelRatio,
+    );
 
     final previousPoint = pen.previousPoint;
 
@@ -396,7 +399,6 @@ class StrokeCanvasPainter {
     Alignment alignment = Alignment.center,
     BoxFit fit = BoxFit.fill,
     ColorFilter? colorFilter,
-    bool needDraw = true,
   }) {
     if (_isDispose) return;
 
@@ -433,7 +435,7 @@ class StrokeCanvasPainter {
 
     if (_paintables.length >= _mergeThreshold) {
       // 但数量大于等于10时，合并可绘制对象，节约内存和性能。
-      _mergingPaintables.append(_paintables);
+      _mergingPaintables.addAll(_paintables);
       _paintables = _StrokeCanvasPaintableList();
       _mergePaintables();
     }
@@ -444,7 +446,11 @@ class StrokeCanvasPainter {
     // 存储一下画布清理次数
     final tage = _cleanCount;
     // 将可绘制对象绘制到位图中，异步操作
-    final image = await _paintToImage(_mergingPaintables);
+    final image = await _paintToImage(
+      _mergingPaintables,
+      _sizeWidth,
+      _sizeHeight,
+    );
 
     // 如果合并完成后，画布清理数据没有变，说明画布没进行清理操作
     if (tage == _cleanCount) {
@@ -453,6 +459,7 @@ class StrokeCanvasPainter {
         width: _sizeWidth,
         height: _sizeHeight,
         pixelRatio: _pixelRatio,
+        fit: BoxFit.none,
       );
 
       // 重新插入到可绘制对象集合中的第一个位置
@@ -467,36 +474,5 @@ class StrokeCanvasPainter {
       // 画布已经清理了，把图片释放掉
       image.dispose();
     }
-  }
-
-  Future<ui.Image> _paintToImage(_StrokeCanvasPaintable drawble) async {
-    final p = _paintToPicture(drawble);
-
-    final image = await p.toImage(_sizeWidth.toInt(), _sizeHeight.toInt());
-
-    p.dispose();
-
-    return image;
-  }
-
-  ui.Picture _paintToPicture(_StrokeCanvasPaintable drawble) {
-    final recorder = ui.PictureRecorder();
-    Canvas canvas = Canvas(recorder);
-    canvas.clipRect(Rect.fromLTWH(0, 0, _sizeWidth, _sizeHeight));
-    canvas.scale(_pixelRatio);
-
-    drawble.paint(canvas, ui.Size(_sizeWidth, _sizeHeight));
-
-    return recorder.endRecording();
-  }
-
-  /// 创建空的图片
-  Future<ui.Image> _createEmptyImage() async {
-    final recorder = ui.PictureRecorder();
-    final _ = Canvas(recorder);
-    final p = recorder.endRecording();
-    final img = await p.toImage(_sizeWidth.toInt(), _sizeHeight.toInt());
-    p.dispose();
-    return img;
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:stroke_canvas_flutter/stroke_canvas.dart';
@@ -94,7 +96,29 @@ class _StrokeCanvasDemoState extends State<StrokeCanvasDemo> {
                       color: Colors.white,
                       size: 30.0,
                     ),
-                  )
+                  ),
+                  FloatingActionButton(
+                    elevation: 1,
+                    focusElevation: 1,
+                    backgroundColor: Colors.green,
+                    onPressed: () async {
+                      const img = AssetImage('lib/images/share_more.png');
+                      final imgInfo = await resolveImageProviderInfo(img);
+                      final x = Random().nextInt(300).toDouble();
+                      final y = Random().nextInt(300).toDouble();
+                      var hw = Random().nextInt(50).toDouble();
+                      hw = hw < 10 ? 10 : hw;
+                      _painter.drawImage(
+                        imgInfo.image,
+                        rect: Rect.fromLTWH(x, y, hw, hw),
+                      );
+                    },
+                    child: const Icon(
+                      CupertinoIcons.film,
+                      color: Colors.white,
+                      size: 30.0,
+                    ),
+                  ),
                 ],
               ),
             ),

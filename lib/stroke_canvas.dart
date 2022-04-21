@@ -1,12 +1,16 @@
+import 'dart:async';
 import 'dart:math';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 
 part 'stroke_canvas_model.dart';
 part 'stroke_canvas_painter.dart';
 part 'stroke_canvas_paintable.dart';
+part 'stroke_canvas_algorithm.dart';
 
 /// Flutter笔迹画布
 class StrokeCanvas extends StatefulWidget {
@@ -40,9 +44,9 @@ class _StrokeCanvasState extends State<StrokeCanvas>
     _StrokeCanvasPaintableList _paintableList = _StrokeCanvasPaintableList();
     // 以下顺序不可乱：
     // 1. 添加正在合并中的可绘制对象，因为这些事最早绘制的数据
-    _paintableList.append(widget.painter._mergingPaintables);
+    _paintableList.addAll(widget.painter._mergingPaintables);
     // 2. 添加可绘制对象
-    _paintableList.append(widget.painter._paintables);
+    _paintableList.addAll(widget.painter._paintables);
     // 3. 添加还没关闭的路径，这些事最新的绘制数据
     for (var info in widget.painter._pens.values) {
       if (info.path.isNotEmpty) {
@@ -55,6 +59,7 @@ class _StrokeCanvasState extends State<StrokeCanvas>
         isComplex: true,
         painter: _StrokeCanvasCustomPainter(
           paintable: _paintableList,
+          pixelRatio: widget.painter.pixelRatio,
         ),
         size: widget.size ?? Size.zero,
       ),
@@ -80,14 +85,19 @@ class _StrokeCanvasState extends State<StrokeCanvas>
 
 class _StrokeCanvasCustomPainter extends CustomPainter {
   _StrokeCanvasPaintable? paintable;
+  double pixelRatio;
 
   _StrokeCanvasCustomPainter({
     this.paintable,
+    this.pixelRatio = 1,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.scale(1 / pixelRatio);
     paintable?.paint(canvas, size);
+    canvas.restore();
   }
 
   @override
