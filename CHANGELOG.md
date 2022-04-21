@@ -1,3 +1,7 @@
+## 0.0.5
+
+* Add 'StrokeCanvasPaintMode'.
+
 ## 0.0.4
 
 * Optimize code structure.

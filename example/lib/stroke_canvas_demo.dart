@@ -13,7 +13,7 @@ class StrokeCanvasDemo extends StatefulWidget {
 }
 
 class _StrokeCanvasDemoState extends State<StrokeCanvasDemo> {
-  final _painter = StrokeCanvasPainter();
+  final _painter = StrokeCanvasPainter.hd();
   bool isEraser = false;
   @override
   void initState() {

@@ -55,7 +55,7 @@ class _StrokeCanvasPen {
   int pointCount = 0;
 
   /// 触发关闭路径的阈值
-  final int closePathThreshold = 800;
+  final int closePathThreshold = 8000;
 
   /// 添加一个点
   void addPoint(_StrokeCanvasPoint point) {

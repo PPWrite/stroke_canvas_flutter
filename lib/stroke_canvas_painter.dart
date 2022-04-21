@@ -1,5 +1,13 @@
 part of 'stroke_canvas.dart';
 
+/// 画布的运行模式
+/// [hd]使用矢量图渲染，绘制的笔迹非常高清，可以无损放大。
+/// [eraser]支持使用橡皮，使用位图和矢量图混合渲染，绘制质量稍差。
+enum StrokeCanvasPaintMode {
+  hd,
+  eraser,
+}
+
 class StrokeCanvasPainter {
   StrokeCanvasPainter({
     Size size = const Size(1, 1),
@@ -8,9 +16,11 @@ class StrokeCanvasPainter {
     double strokeWidth = 3,
     double eraserWidth = 30,
     bool isEraser = false,
+    StrokeCanvasPaintMode mode = StrokeCanvasPaintMode.eraser,
   })  : assert(pixelRatio > 0),
         assert(size.width > 0 || size.height > 0),
         assert(strokeWidth > 0),
+        _mode = mode,
         _size = size,
         _pixelRatio = pixelRatio,
         _sizeWidth = (size.width * pixelRatio).ceil().toDouble(),
@@ -21,6 +31,46 @@ class StrokeCanvasPainter {
     info.lineColor = lineColor;
     info.isEraser = false;
   }
+
+  StrokeCanvasPainter.hd({
+    Size size = const Size(1, 1),
+    double pixelRatio = 1,
+    Color lineColor = Colors.black,
+    double strokeWidth = 3,
+  })  : _mode = StrokeCanvasPaintMode.hd,
+        _size = size,
+        _pixelRatio = 1,
+        _sizeWidth = size.width.ceil().toDouble(),
+        _sizeHeight = size.height.ceil().toDouble() {
+    final info = _getPen(kStrokeCanvasPainterDefaultPenId);
+    info.strokeWidth = strokeWidth;
+    info.lineColor = lineColor;
+  }
+
+  StrokeCanvasPainter.eraser({
+    Size size = const Size(1, 1),
+    double pixelRatio = 1,
+    Color lineColor = Colors.black,
+    double strokeWidth = 3,
+    double eraserWidth = 30,
+    bool isEraser = false,
+  })  : assert(pixelRatio > 0),
+        assert(size.width > 0 || size.height > 0),
+        assert(strokeWidth > 0),
+        _mode = StrokeCanvasPaintMode.eraser,
+        _size = size,
+        _pixelRatio = pixelRatio,
+        _sizeWidth = (size.width * pixelRatio).ceil().toDouble(),
+        _sizeHeight = (size.height * pixelRatio).ceil().toDouble() {
+    final info = _getPen(kStrokeCanvasPainterDefaultPenId);
+    info.strokeWidth = strokeWidth;
+    info.eraserWidth = eraserWidth;
+    info.lineColor = lineColor;
+    info.isEraser = false;
+  }
+
+  /// 绘制模式
+  final StrokeCanvasPaintMode _mode;
 
   /// 当前绘制的大小
   Size _size;
@@ -54,6 +104,8 @@ class StrokeCanvasPainter {
 
   /// 设备像素密度，通过`MediaQuery.of(context)devicePixelRatio`可以获取到。
   set pixelRatio(double value) {
+    if (_mode == StrokeCanvasPaintMode.hd) return;
+
     if (value == _pixelRatio) return;
 
     _pixelRatio = value;
@@ -73,6 +125,8 @@ class StrokeCanvasPainter {
   /// 设置画橡皮模式
   void setIsEraser(bool isEraser,
       {String penId = kStrokeCanvasPainterDefaultPenId}) {
+    if (_mode == StrokeCanvasPaintMode.hd) return;
+
     final info = _getPen(penId);
     if (info.isEraser != isEraser) {
       info.isEraser = isEraser;
@@ -82,6 +136,8 @@ class StrokeCanvasPainter {
 
   /// 获取橡皮模式
   bool getIsEraser({String penId = kStrokeCanvasPainterDefaultPenId}) {
+    if (_mode == StrokeCanvasPaintMode.hd) return false;
+
     return _getPen(penId).isEraser;
   }
 
@@ -132,11 +188,14 @@ class StrokeCanvasPainter {
   /// 设置橡皮宽度
   void setEraserWidth(double width,
       {String penId = kStrokeCanvasPainterDefaultPenId}) {
+    if (_mode == StrokeCanvasPaintMode.hd) return;
     _getPen(penId).eraserWidth = width;
   }
 
   /// 获取橡皮宽度
   double getEraserWidth({String penId = kStrokeCanvasPainterDefaultPenId}) {
+    if (_mode == StrokeCanvasPaintMode.hd) return 0;
+
     return _getPen(penId).eraserWidth;
   }
 
@@ -232,6 +291,7 @@ class StrokeCanvasPainter {
       value.newPath();
     });
 
+    _paintableWidgets = [];
     _paintables.dispose();
     _paintables = _StrokeCanvasPaintableList();
     _mergingPaintables.dispose();
@@ -317,6 +377,9 @@ class StrokeCanvasPainter {
   /// 合并中的可绘制对象集合。
   /// 合并前会将[_paintables]集合中的对象转移到这个集合中，等待进行合并。
   _StrokeCanvasPaintableList _mergingPaintables = _StrokeCanvasPaintableList();
+
+  /// 绘制的Widget集合，在hd模式下，用来保存绘制的笔迹，提高绘制性能
+  List<Widget> _paintableWidgets = [];
 
   /// 触发合并操作的阈值。
   final int _mergeThreshold = 10;
@@ -427,52 +490,98 @@ class StrokeCanvasPainter {
 
   // 添加可绘制对象
   void _addPaintable(_StrokeCanvasPaintable d, [int? insertIdx]) {
-    if (insertIdx != null) {
-      _paintables.insert(insertIdx, d);
+    if (_mode == StrokeCanvasPaintMode.hd) {
+      // 高清模式，将paintable转成picture
+      _StrokeCanvasPaintablePictrue paintablePictrue;
+      if (d is _StrokeCanvasPaintablePictrue) {
+        paintablePictrue = d;
+      } else {
+        paintablePictrue = _StrokeCanvasPaintablePictrue(
+          picture: _paintToPicture(d, _sizeHeight, _sizeHeight),
+          width: _sizeHeight,
+          height: _sizeHeight,
+        );
+      }
+      // 创建widget
+      final pictureWidget = RepaintBoundary(
+        child: CustomPaint(
+          isComplex: true,
+          painter: _StrokeCanvasCustomPainter(
+            paintable: paintablePictrue,
+            pixelRatio: pixelRatio,
+          ),
+          size: size,
+        ),
+      );
+
+      if (insertIdx != null) {
+        _paintables.insert(insertIdx, paintablePictrue);
+        _paintableWidgets.insert(insertIdx, pictureWidget);
+      } else {
+        _paintables.add(paintablePictrue);
+        _paintableWidgets.add(pictureWidget);
+      }
     } else {
-      _paintables.add(d);
+      if (insertIdx != null) {
+        _paintables.insert(insertIdx, d);
+      } else {
+        _paintables.add(d);
+      }
     }
 
     if (_paintables.length >= _mergeThreshold) {
       // 但数量大于等于10时，合并可绘制对象，节约内存和性能。
       _mergingPaintables.addAll(_paintables);
       _paintables = _StrokeCanvasPaintableList();
+
       _mergePaintables();
     }
   }
 
   /// 合并可绘制对象
   Future<void> _mergePaintables() async {
-    // 存储一下画布清理次数
-    final tage = _cleanCount;
-    // 将可绘制对象绘制到位图中，异步操作
-    final image = await _paintToImage(
-      _mergingPaintables,
-      _sizeWidth,
-      _sizeHeight,
-    );
-
-    // 如果合并完成后，画布清理数据没有变，说明画布没进行清理操作
-    if (tage == _cleanCount) {
-      final img = _StrokeCanvasPaintableImage(
-        image: _StrokeCanvasImage(image),
-        width: _sizeWidth,
-        height: _sizeHeight,
-        pixelRatio: _pixelRatio,
-        fit: BoxFit.none,
+    if (_mode == StrokeCanvasPaintMode.hd) {
+      final pictrue = _paintToPaintablePicture(
+        _mergingPaintables,
+        _sizeWidth,
+        _sizeHeight,
       );
-
-      // 重新插入到可绘制对象集合中的第一个位置
-      _addPaintable(img, 0);
+      // 1. 一定要先清空之前的widget
+      _paintableWidgets = [];
+      // 2. 再重新插入到可绘制对象集合中的第一个位置
+      _addPaintable(pictrue, 0);
       // 释放数据
       _mergingPaintables.dispose();
       // 新建列表
       _mergingPaintables = _StrokeCanvasPaintableList();
+
       // 标记当前需要绘制
       _isShouldPaint = true;
     } else {
-      // 画布已经清理了，把图片释放掉
-      image.dispose();
+      // 存储一下画布清理次数
+      final tage = _cleanCount;
+      // 将可绘制对象绘制到位图中，异步操作
+      final image = await _paintToPaintableImage(
+        _mergingPaintables,
+        _sizeWidth,
+        _sizeHeight,
+        _pixelRatio,
+      );
+
+      // 如果合并完成后，画布清理数据没有变，说明画布没进行清理操作
+      if (tage == _cleanCount) {
+        // 重新插入到可绘制对象集合中的第一个位置
+        _addPaintable(image, 0);
+        // 释放数据
+        _mergingPaintables.dispose();
+        // 新建列表
+        _mergingPaintables = _StrokeCanvasPaintableList();
+        // 标记当前需要绘制
+        _isShouldPaint = true;
+      } else {
+        // 画布已经清理了，把图片释放掉
+        image.dispose();
+      }
     }
   }
 }

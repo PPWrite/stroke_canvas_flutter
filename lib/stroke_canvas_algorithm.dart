@@ -37,6 +37,23 @@ Future<ui.Image> _paintToImage(
   return image;
 }
 
+Future<_StrokeCanvasPaintableImage> _paintToPaintableImage(
+  _StrokeCanvasPaintable drawble,
+  double width,
+  double height,
+  double pixelRatio,
+) async {
+  final image = await _paintToImage(drawble, width, height);
+
+  return _StrokeCanvasPaintableImage(
+    image: _StrokeCanvasImage(image),
+    width: width,
+    height: height,
+    pixelRatio: pixelRatio,
+    fit: BoxFit.none,
+  );
+}
+
 ui.Picture _paintToPicture(
   _StrokeCanvasPaintable drawble,
   double width,
@@ -49,6 +66,37 @@ ui.Picture _paintToPicture(
   drawble.paint(canvas, ui.Size(width, height));
 
   return recorder.endRecording();
+}
+
+_StrokeCanvasPaintablePictrue _paintToPaintablePicture(
+  _StrokeCanvasPaintable drawble,
+  double width,
+  double height,
+) {
+  return _StrokeCanvasPaintablePictrue(
+    picture: _paintToPicture(drawble, width, height),
+    width: width,
+    height: height,
+  );
+}
+
+Widget _paintToWidget(
+  _StrokeCanvasPaintablePictrue picture,
+  double width,
+  double height,
+  double pixelRatio,
+) {
+  // 创建widget
+  return RepaintBoundary(
+    child: CustomPaint(
+      isComplex: true,
+      painter: _StrokeCanvasCustomPainter(
+        paintable: picture,
+        pixelRatio: pixelRatio,
+      ),
+      size: ui.Size(width, height),
+    ),
+  );
 }
 
 /// 创建空的图片
