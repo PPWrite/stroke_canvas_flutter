@@ -1,3 +1,7 @@
+## 0.0.6
+
+* Rename "StrokeCanvasPaintMode.eraser" to "StrokeCanvasPaintMode.supportEraser".
+
 ## 0.0.5
 
 * Add 'StrokeCanvasPaintMode'.

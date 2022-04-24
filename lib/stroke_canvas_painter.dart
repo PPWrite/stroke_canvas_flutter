@@ -1,11 +1,12 @@
 part of 'stroke_canvas.dart';
 
-/// 画布的运行模式
-/// [hd]使用矢量图渲染，绘制的笔迹非常高清，可以无损放大。
-/// [eraser]支持使用橡皮，使用位图和矢量图混合渲染，绘制质量稍差。
+/// 画布的绘制模式
 enum StrokeCanvasPaintMode {
+  /// 采用矢量绘制模式，绘制效果极佳，但是在进行Widget缩放时会有性能问题。
   hd,
-  eraser,
+
+  /// 支持橡皮的绘制模式，使用位图和矢量图混合渲染，绘制质量稍差。
+  supportEraser,
 }
 
 class StrokeCanvasPainter {
@@ -16,7 +17,7 @@ class StrokeCanvasPainter {
     double strokeWidth = 3,
     double eraserWidth = 30,
     bool isEraser = false,
-    StrokeCanvasPaintMode mode = StrokeCanvasPaintMode.eraser,
+    StrokeCanvasPaintMode mode = StrokeCanvasPaintMode.supportEraser,
   })  : assert(pixelRatio > 0),
         assert(size.width > 0 || size.height > 0),
         assert(strokeWidth > 0),
@@ -47,7 +48,7 @@ class StrokeCanvasPainter {
     info.lineColor = lineColor;
   }
 
-  StrokeCanvasPainter.eraser({
+  StrokeCanvasPainter.supportEraser({
     Size size = const Size(1, 1),
     double pixelRatio = 1,
     Color lineColor = Colors.black,
@@ -57,7 +58,7 @@ class StrokeCanvasPainter {
   })  : assert(pixelRatio > 0),
         assert(size.width > 0 || size.height > 0),
         assert(strokeWidth > 0),
-        _mode = StrokeCanvasPaintMode.eraser,
+        _mode = StrokeCanvasPaintMode.supportEraser,
         _size = size,
         _pixelRatio = pixelRatio,
         _sizeWidth = (size.width * pixelRatio).ceil().toDouble(),
