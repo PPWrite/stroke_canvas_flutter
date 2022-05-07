@@ -1,5 +1,9 @@
 ## 0.0.6
 
+* Fix 'hd' mode can't set 'pixelRatio'.
+
+## 0.0.6
+
 * Rename "StrokeCanvasPaintMode.eraser" to "StrokeCanvasPaintMode.supportEraser".
 
 ## 0.0.5

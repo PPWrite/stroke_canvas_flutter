@@ -1,6 +1,8 @@
 part of 'stroke_canvas.dart';
 
-/// 画布的绘制模式
+/// 画布的绘制模式。
+/// 如果绘制时不需要橡皮功能，则使用[hd]模式。
+/// 需要橡皮功能则使用[supportEraser]模式。
 enum StrokeCanvasPaintMode {
   /// 采用矢量绘制模式，绘制效果极佳，但是在进行Widget缩放时会有性能问题。
   hd,
@@ -9,7 +11,15 @@ enum StrokeCanvasPaintMode {
   supportEraser,
 }
 
+/// 用来进行画布绘制的class。
 class StrokeCanvasPainter {
+  /// 初始化方法。
+  /// 需要使用[size]方法设置绘制的区域大小。
+  /// [pixelRatio]设置为[MediaQuery.devicePixelRatio]。
+  /// [lineColor]设置默认的笔迹颜色。
+  /// [strokeWidth]和[eraserWidth]设置笔迹和橡皮的默认宽度。
+  /// 如果[isEraser]传入true，则画面会变成橡皮模式。
+  /// [mode]决定了当前绘制的模式，如果为[StrokeCanvasPaintMode.hd]模式，则[eraserWidth]、[isEraser]参数无效。
   StrokeCanvasPainter({
     Size size = const Size(1, 1),
     double pixelRatio = 1,
@@ -33,14 +43,18 @@ class StrokeCanvasPainter {
     info.isEraser = false;
   }
 
+  /// [StrokeCanvasPaintMode.hd]绘制模式的构造函数。
   StrokeCanvasPainter.hd({
     Size size = const Size(1, 1),
     double pixelRatio = 1,
     Color lineColor = Colors.black,
     double strokeWidth = 3,
-  })  : _mode = StrokeCanvasPaintMode.hd,
+  })  : assert(pixelRatio > 0),
+        assert(size.width > 0 || size.height > 0),
+        assert(strokeWidth > 0),
+        _mode = StrokeCanvasPaintMode.hd,
         _size = size,
-        _pixelRatio = 1,
+        _pixelRatio = pixelRatio,
         _sizeWidth = size.width.ceil().toDouble(),
         _sizeHeight = size.height.ceil().toDouble() {
     final info = _getPen(kStrokeCanvasPainterDefaultPenId);
@@ -48,6 +62,7 @@ class StrokeCanvasPainter {
     info.lineColor = lineColor;
   }
 
+  /// [StrokeCanvasPaintMode.supportEraser]模式的构造函数。
   StrokeCanvasPainter.supportEraser({
     Size size = const Size(1, 1),
     double pixelRatio = 1,
@@ -105,8 +120,6 @@ class StrokeCanvasPainter {
 
   /// 设备像素密度，通过`MediaQuery.of(context)devicePixelRatio`可以获取到。
   set pixelRatio(double value) {
-    if (_mode == StrokeCanvasPaintMode.hd) return;
-
     if (value == _pixelRatio) return;
 
     _pixelRatio = value;
