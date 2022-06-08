@@ -13,7 +13,9 @@ class StrokeCanvasDemo extends StatefulWidget {
 }
 
 class _StrokeCanvasDemoState extends State<StrokeCanvasDemo> {
-  final _painter = StrokeCanvasPainter.hd();
+  final _painter = StrokeCanvasPainter.supportEraser();
+  // this hd is not support eraser.
+  // final _painter = StrokeCanvasPainter.hd();
   bool isEraser = false;
   @override
   void initState() {
@@ -25,14 +27,14 @@ class _StrokeCanvasDemoState extends State<StrokeCanvasDemo> {
   late double dy = 175;
   @override
   Widget build(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    final size = Size(
+      mq.size.width - mq.padding.left - mq.padding.right,
+      mq.size.height - mq.padding.top - mq.padding.bottom,
+    );
     if (_canvasSize == null) {
       _painter.setEraserWidth(100);
       _painter.setStrokeWidth(1.5);
-      final mq = MediaQuery.of(context);
-      final size = Size(
-        mq.size.width - mq.padding.left - mq.padding.right,
-        mq.size.height - mq.padding.top - mq.padding.bottom,
-      );
 
       _canvasSize = size;
       // 设置画布的大小，必须要正确设置
@@ -56,7 +58,7 @@ class _StrokeCanvasDemoState extends State<StrokeCanvasDemo> {
         children: [
           StrokeCanvas(
             painter: _painter,
-            size: _canvasSize,
+            size: size,
           ),
           Align(
             alignment: Alignment.bottomCenter,

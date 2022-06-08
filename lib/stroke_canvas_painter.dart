@@ -91,6 +91,9 @@ class StrokeCanvasPainter {
   /// 当前绘制的大小
   Size _size;
 
+  /// 所属的widget的大小
+  Size? _widgetSize;
+
   /// 当前绘制的大小
   Size get size => _size;
 
@@ -104,6 +107,8 @@ class StrokeCanvasPainter {
     _sizeWidth = (value.width * pixelRatio).ceil().toDouble();
 
     _sizeHeight = (value.height * pixelRatio).ceil().toDouble();
+
+    _isShouldPaint = true;
   }
 
   /// 绘制宽度
@@ -128,6 +133,8 @@ class StrokeCanvasPainter {
     _sizeWidth = (_size.width * value).ceil().toDouble();
 
     _sizeHeight = (_size.height * value).ceil().toDouble();
+
+    _isShouldPaint = true;
   }
 
   /// 默认的橡皮模式
@@ -523,8 +530,9 @@ class StrokeCanvasPainter {
           painter: _StrokeCanvasCustomPainter(
             paintable: paintablePictrue,
             pixelRatio: pixelRatio,
+            painter: this,
           ),
-          size: size,
+          size: _size,
         ),
       );
 

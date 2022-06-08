@@ -15,6 +15,10 @@ part 'stroke_canvas_algorithm.dart';
 /// Flutter笔迹画布
 class StrokeCanvas extends StatefulWidget {
   final StrokeCanvasPainter painter;
+
+  /// Widget的size.
+  /// 若[size] != null && != [StrokeCanvasPainter.size]，
+  /// 则绘制的结果会拉伸缩放。
   final Size? size;
 
   const StrokeCanvas({
@@ -41,6 +45,8 @@ class _StrokeCanvasState extends State<StrokeCanvas>
 
   @override
   Widget build(BuildContext context) {
+    widget.painter._widgetSize = widget.size;
+
     final pixelRatio = widget.painter.pixelRatio;
     final size = widget.size ?? Size.zero;
 
@@ -59,6 +65,7 @@ class _StrokeCanvasState extends State<StrokeCanvas>
         painter: _StrokeCanvasCustomPainter(
           paintable: _paintableList,
           pixelRatio: pixelRatio,
+          painter: widget.painter,
         ),
         size: size,
       ));
@@ -89,6 +96,7 @@ class _StrokeCanvasState extends State<StrokeCanvas>
           painter: _StrokeCanvasCustomPainter(
             paintable: _paintableList,
             pixelRatio: pixelRatio,
+            painter: widget.painter,
           ),
           size: size,
         ),
@@ -116,8 +124,10 @@ class _StrokeCanvasState extends State<StrokeCanvas>
 class _StrokeCanvasCustomPainter extends CustomPainter {
   _StrokeCanvasPaintable? paintable;
   double pixelRatio;
+  StrokeCanvasPainter painter;
 
   _StrokeCanvasCustomPainter({
+    required this.painter,
     this.paintable,
     this.pixelRatio = 1,
   });
@@ -126,7 +136,23 @@ class _StrokeCanvasCustomPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     canvas.save();
     canvas.scale(1 / pixelRatio);
+
+    Size? widgetSize = painter._widgetSize;
+    Size painterSize = painter._size;
+
+    bool needSizeScale = widgetSize != null && widgetSize != painterSize;
+    if (needSizeScale) {
+      canvas.save();
+      canvas.scale(
+        widgetSize.width / painterSize.width,
+        widgetSize.height / painterSize.height,
+      );
+    }
+
     paintable?.paint(canvas, size);
+    if (needSizeScale) {
+      canvas.restore();
+    }
     canvas.restore();
   }
 

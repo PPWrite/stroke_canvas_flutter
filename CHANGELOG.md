@@ -1,3 +1,7 @@
+## 0.0.8
+
+* If StrokeCanvas.size != StrokeCanvasPainter.size，else zoom
+
 ## 0.0.7
 
 * Fix 'hd' mode can't set 'pixelRatio'.

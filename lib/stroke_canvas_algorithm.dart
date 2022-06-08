@@ -80,25 +80,6 @@ _StrokeCanvasPaintablePictrue _paintToPaintablePicture(
   );
 }
 
-Widget _paintToWidget(
-  _StrokeCanvasPaintablePictrue picture,
-  double width,
-  double height,
-  double pixelRatio,
-) {
-  // 创建widget
-  return RepaintBoundary(
-    child: CustomPaint(
-      isComplex: true,
-      painter: _StrokeCanvasCustomPainter(
-        paintable: picture,
-        pixelRatio: pixelRatio,
-      ),
-      size: ui.Size(width, height),
-    ),
-  );
-}
-
 /// 创建空的图片
 Future<ui.Image> _createEmptyImage(double width, double height) async {
   final recorder = ui.PictureRecorder();
