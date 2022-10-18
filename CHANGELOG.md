@@ -1,3 +1,7 @@
+## 0.0.9
+
+* Optimize memory usage.
+
 ## 0.0.8
 
 * If StrokeCanvas.size != StrokeCanvasPainter.size，else zoom
