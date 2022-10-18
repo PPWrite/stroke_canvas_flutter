@@ -6,7 +6,11 @@ abstract class _StrokeCanvasPaintable {
   void paint(ui.Canvas canvas, Size size);
 
   /// 释放数据
-  void dispose();
+  @mustCallSuper
+  void dispose() {
+    PaintingBinding.instance.imageCache.clear();
+    PaintingBinding.instance.imageCache.clearLiveImages();
+  }
 
   @override
   int get hashCode;
@@ -136,7 +140,9 @@ class _StrokeCanvasPaintablePath extends _StrokeCanvasPaintable {
   }
 
   @override
-  void dispose() {}
+  void dispose() {
+    super.dispose();
+  }
 
   @override
   int get hashCode => _cacheHash;
@@ -205,6 +211,7 @@ class _StrokeCanvasPaintableImage extends _StrokeCanvasPaintable {
 
   @override
   void dispose() {
+    super.dispose();
     image.dispose();
   }
 
@@ -233,6 +240,7 @@ class _StrokeCanvasPaintablePictrue extends _StrokeCanvasPaintable {
 
   @override
   void dispose() {
+    super.dispose();
     picture.dispose();
   }
 
@@ -268,6 +276,7 @@ class _StrokeCanvasPaintableList<M extends _StrokeCanvasPaintable>
 
   @override
   void dispose() {
+    super.dispose();
     for (var item in paintables) {
       item.dispose();
     }
