@@ -41,6 +41,9 @@ class _StrokeCanvasDemoState extends State<StrokeCanvasDemo> {
       _painter.size = size;
       // 设置屏幕像素密度，不设置会有锯齿
       _painter.pixelRatio = mq.devicePixelRatio;
+
+      // 透明度200
+      _painter.pathAlpha = 200;
     }
 
     return GestureDetector(
@@ -113,6 +116,7 @@ class _StrokeCanvasDemoState extends State<StrokeCanvasDemo> {
                       _painter.drawImage(
                         imgInfo.image,
                         rect: Rect.fromLTWH(x, y, hw, hw),
+                        alpha: Random().nextInt(100) + 150,
                       );
                     },
                     child: const Icon(

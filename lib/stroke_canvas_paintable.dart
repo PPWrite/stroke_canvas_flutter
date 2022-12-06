@@ -23,17 +23,19 @@ abstract class _StrokeCanvasPaintable {
 class _StrokeCanvasPaintablePath extends _StrokeCanvasPaintable {
   _StrokeCanvasPaintablePath({
     Path? path,
-    Color? color,
+    Color color = Colors.black,
     this.isEraser = false,
+    int alpha = 255,
   })  : path = path ?? Path(),
-        _color = color ?? Colors.black,
+        _color = color,
+        _alpha = alpha,
         _paint = Paint()
-          ..color = color ?? Colors.black
+          ..color = color.withAlpha(alpha)
           ..isAntiAlias = true
           ..style = PaintingStyle.fill
           ..filterQuality = ui.FilterQuality.medium
           ..blendMode = isEraser ? BlendMode.clear : BlendMode.srcOver {
-    _cacheHash = Object.hash(_cacheHash, _color.value);
+    _cacheHash = Object.hash(_cacheHash, _color.value, alpha);
   }
 
   int _cacheHash = 0;
@@ -41,11 +43,17 @@ class _StrokeCanvasPaintablePath extends _StrokeCanvasPaintable {
   final Path path;
   Color _color;
   final Paint _paint;
+  int _alpha;
+  int get alpha => _alpha;
+  set alpha(int v) {
+    _alpha = v;
+    _paint.color = _color.withAlpha(v);
+  }
 
   Color get color => _color;
   set color(Color v) {
     _color = v;
-    _paint.color = v;
+    _paint.color = v.withAlpha(_alpha);
   }
 
   bool _isEmpty = true;
@@ -158,6 +166,7 @@ class _StrokeCanvasPaintableImage extends _StrokeCanvasPaintable {
     this.alignment = Alignment.topLeft,
     this.fit = BoxFit.fill,
     this.colorFilter,
+    this.alpha = 255,
   }) : _cacheHash = Object.hash(
           image.image,
           width,
@@ -167,6 +176,7 @@ class _StrokeCanvasPaintableImage extends _StrokeCanvasPaintable {
           alignment,
           fit,
           colorFilter,
+          alpha,
         );
 
   final _StrokeCanvasImage image;
@@ -177,6 +187,7 @@ class _StrokeCanvasPaintableImage extends _StrokeCanvasPaintable {
   final Alignment alignment;
   final BoxFit fit;
   final ColorFilter? colorFilter;
+  final int alpha;
 
   final int _cacheHash;
 
@@ -199,6 +210,7 @@ class _StrokeCanvasPaintableImage extends _StrokeCanvasPaintable {
       colorFilter: colorFilter,
       isAntiAlias: true,
       filterQuality: ui.FilterQuality.medium,
+      opacity: alpha / 255.0,
     );
 
     canvas.restore();
@@ -277,7 +289,7 @@ class _StrokeCanvasPaintableList<M extends _StrokeCanvasPaintable>
 
   @override
   void paint(ui.Canvas canvas, Size size) {
-    // 需要savelayer一下，房子橡皮无法绘制
+    // 需要savelayer一下，否则橡皮无法绘制
     canvas.saveLayer(null, ui.Paint());
     for (var item in paintables) {
       item.paint(canvas, size);

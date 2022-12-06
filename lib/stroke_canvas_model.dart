@@ -7,10 +7,14 @@ class _StrokeCanvasPen {
     required this.onClosedPath,
     Color lineColor = Colors.black,
     bool isEraser = false,
+    int pathAlpha = 255,
   })  : _lineColor = lineColor,
+        _pathAlpha = min(255, max(0, pathAlpha)),
         path = _StrokeCanvasPaintablePath(
-            color: isEraser ? Colors.transparent : lineColor,
-            isEraser: isEraser),
+          color: isEraser ? Colors.transparent : lineColor,
+          isEraser: isEraser,
+          alpha: min(255, max(0, pathAlpha)),
+        ),
         _isEraser = isEraser;
 
   /// 默认的笔画宽度。
@@ -18,6 +22,21 @@ class _StrokeCanvasPen {
 
   /// 默认的橡皮宽度。
   double eraserWidth = 30;
+
+  /// 划线类型
+  StrokeCanvasPaintPathType pathType = StrokeCanvasPaintPathType.line;
+
+  /// 路径透明度
+  int _pathAlpha;
+
+  /// 路径透明度
+  int get pathAlpha => _pathAlpha;
+  set pathAlpha(int v) {
+    if (v == _pathAlpha) return;
+
+    _pathAlpha = min(255, max(0, v));
+    path.alpha = _pathAlpha;
+  }
 
   /// 关闭路径的回调
   void Function(_StrokeCanvasPaintablePath path) onClosedPath;
@@ -82,8 +101,10 @@ class _StrokeCanvasPen {
   void newPath() {
     pointCount = 0;
     path = _StrokeCanvasPaintablePath(
-        color: _isEraser ? Colors.transparent : _lineColor,
-        isEraser: _isEraser);
+      color: _isEraser ? Colors.transparent : _lineColor,
+      isEraser: _isEraser,
+      alpha: _pathAlpha,
+    );
   }
 
   void closedPath() {

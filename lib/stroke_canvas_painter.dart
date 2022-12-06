@@ -11,6 +11,15 @@ enum StrokeCanvasPaintMode {
   supportEraser,
 }
 
+/// 绘制的路径的类型
+enum StrokeCanvasPaintPathType {
+  /// 连线模式
+  line,
+
+  /// 打点模式
+  point,
+}
+
 /// 用来进行画布绘制的class。
 class StrokeCanvasPainter {
   /// 初始化方法。
@@ -20,6 +29,7 @@ class StrokeCanvasPainter {
   /// [strokeWidth]和[eraserWidth]设置笔迹和橡皮的默认宽度。
   /// 如果[isEraser]传入true，则画面会变成橡皮模式。
   /// [mode]决定了当前绘制的模式，如果为[StrokeCanvasPaintMode.hd]模式，则[eraserWidth]、[isEraser]参数无效。
+  /// [pathType]参数可以设置绘制路径的类型，[pathAlpha]可以设置路径的透明度。
   StrokeCanvasPainter({
     Size size = const Size(1, 1),
     double pixelRatio = 1,
@@ -28,6 +38,8 @@ class StrokeCanvasPainter {
     double eraserWidth = 30,
     bool isEraser = false,
     StrokeCanvasPaintMode mode = StrokeCanvasPaintMode.supportEraser,
+    StrokeCanvasPaintPathType pathType = StrokeCanvasPaintPathType.line,
+    int pathAlpha = 255,
   })  : assert(pixelRatio > 0),
         assert(size.width > 0 || size.height > 0),
         assert(strokeWidth > 0),
@@ -41,6 +53,8 @@ class StrokeCanvasPainter {
     info.eraserWidth = eraserWidth;
     info.lineColor = lineColor;
     info.isEraser = false;
+    info.pathType = pathType;
+    info.pathAlpha = pathAlpha;
   }
 
   /// [StrokeCanvasPaintMode.hd]绘制模式的构造函数。
@@ -49,6 +63,8 @@ class StrokeCanvasPainter {
     double pixelRatio = 1,
     Color lineColor = Colors.black,
     double strokeWidth = 3,
+    StrokeCanvasPaintPathType pathType = StrokeCanvasPaintPathType.line,
+    int pathAlpha = 255,
   })  : assert(pixelRatio > 0),
         assert(size.width > 0 || size.height > 0),
         assert(strokeWidth > 0),
@@ -60,6 +76,8 @@ class StrokeCanvasPainter {
     final info = _getPen(kStrokeCanvasPainterDefaultPenId);
     info.strokeWidth = strokeWidth;
     info.lineColor = lineColor;
+    info.pathType = pathType;
+    info.pathAlpha = pathAlpha;
   }
 
   /// [StrokeCanvasPaintMode.supportEraser]模式的构造函数。
@@ -70,6 +88,8 @@ class StrokeCanvasPainter {
     double strokeWidth = 3,
     double eraserWidth = 30,
     bool isEraser = false,
+    StrokeCanvasPaintPathType pathType = StrokeCanvasPaintPathType.line,
+    int pathAlpha = 255,
   })  : assert(pixelRatio > 0),
         assert(size.width > 0 || size.height > 0),
         assert(strokeWidth > 0),
@@ -83,6 +103,8 @@ class StrokeCanvasPainter {
     info.eraserWidth = eraserWidth;
     info.lineColor = lineColor;
     info.isEraser = false;
+    info.pathType = pathType;
+    info.pathAlpha = pathAlpha;
   }
 
   /// 绘制模式
@@ -168,6 +190,11 @@ class StrokeCanvasPainter {
   /// 默认的笔画颜色
   set lineColor(Color value) => setLineColor(value);
 
+  /// 获取画笔颜色
+  Color getLineColor({String penId = kStrokeCanvasPainterDefaultPenId}) {
+    return _getPen(penId).lineColor;
+  }
+
   /// 设置画笔颜色
   void setLineColor(Color color,
       {String penId = kStrokeCanvasPainterDefaultPenId}) {
@@ -178,26 +205,21 @@ class StrokeCanvasPainter {
     }
   }
 
-  /// 获取画笔颜色
-  Color getLineColor({String penId = kStrokeCanvasPainterDefaultPenId}) {
-    return _getPen(penId).lineColor;
-  }
-
   /// 默认的笔画宽度。
   double get strokeWidth => getStrokeWidth();
 
   /// 默认的笔画宽度。
   set strokeWidth(double value) => setStrokeWidth(value);
 
+  /// 获取画笔宽度
+  double getStrokeWidth({String penId = kStrokeCanvasPainterDefaultPenId}) {
+    return _getPen(penId).strokeWidth;
+  }
+
   /// 设置画笔宽度
   void setStrokeWidth(double width,
       {String penId = kStrokeCanvasPainterDefaultPenId}) {
     _getPen(penId).strokeWidth = width;
-  }
-
-  /// 获取画笔宽度
-  double getStrokeWidth({String penId = kStrokeCanvasPainterDefaultPenId}) {
-    return _getPen(penId).strokeWidth;
   }
 
   /// 默认的橡皮宽度。
@@ -206,6 +228,13 @@ class StrokeCanvasPainter {
   /// 默认的橡皮宽度。
   set eraserWidth(double value) => setEraserWidth(value);
 
+  /// 获取橡皮宽度
+  double getEraserWidth({String penId = kStrokeCanvasPainterDefaultPenId}) {
+    if (_mode == StrokeCanvasPaintMode.hd) return 0;
+
+    return _getPen(penId).eraserWidth;
+  }
+
   /// 设置橡皮宽度
   void setEraserWidth(double width,
       {String penId = kStrokeCanvasPainterDefaultPenId}) {
@@ -213,11 +242,36 @@ class StrokeCanvasPainter {
     _getPen(penId).eraserWidth = width;
   }
 
-  /// 获取橡皮宽度
-  double getEraserWidth({String penId = kStrokeCanvasPainterDefaultPenId}) {
-    if (_mode == StrokeCanvasPaintMode.hd) return 0;
+  /// 路径类型
+  StrokeCanvasPaintPathType get pathType => getPathType();
+  set pathType(StrokeCanvasPaintPathType v) => setPathType(v);
 
-    return _getPen(penId).eraserWidth;
+  /// 获取路径类型
+  StrokeCanvasPaintPathType getPathType(
+      {String penId = kStrokeCanvasPainterDefaultPenId}) {
+    return _getPen(penId).pathType;
+  }
+
+  /// 设置路径类型
+  void setPathType(StrokeCanvasPaintPathType type,
+      {String penId = kStrokeCanvasPainterDefaultPenId}) {
+    _getPen(penId).pathType = type;
+  }
+
+  /// 路径透明度
+  int get pathAlpha => getPathAlpha();
+
+  /// 路径透明度
+  set pathAlpha(int v) => setPathAlpha(v);
+
+  /// 获路径透明度
+  int getPathAlpha({String penId = kStrokeCanvasPainterDefaultPenId}) {
+    return _getPen(penId).pathAlpha;
+  }
+
+  /// 设置路径透明度
+  void setPathAlpha(int v, {String penId = kStrokeCanvasPainterDefaultPenId}) {
+    _getPen(penId).pathAlpha = v;
   }
 
   /// 开始一个新的线条。
@@ -271,6 +325,7 @@ class StrokeCanvasPainter {
     Alignment alignment = Alignment.center,
     BoxFit fit = BoxFit.fill,
     ColorFilter? colorFilter,
+    int alpha = 255,
   }) {
     _addImage(
       image,
@@ -278,6 +333,7 @@ class StrokeCanvasPainter {
       alignment: alignment,
       fit: fit,
       colorFilter: colorFilter,
+      alpha: alpha,
     );
 
     _isShouldPaint = true;
@@ -291,6 +347,7 @@ class StrokeCanvasPainter {
     Alignment alignment = Alignment.center,
     BoxFit fit = BoxFit.fill,
     ColorFilter? colorFilter,
+    int alpha = 255,
   }) {
     _addImage(
       image,
@@ -298,6 +355,7 @@ class StrokeCanvasPainter {
       alignment: alignment,
       fit: fit,
       colorFilter: colorFilter,
+      alpha: alpha,
     );
   }
 
@@ -426,7 +484,9 @@ class StrokeCanvasPainter {
 
     final previousPoint = pen.previousPoint;
 
-    if (previousPoint == null || point.same(previousPoint)) {
+    if (pen.pathType == StrokeCanvasPaintPathType.point ||
+        previousPoint == null ||
+        point.same(previousPoint)) {
       // 没有最后一个点，或者最后一个点和当前点坐标相同，
       // 则只需要再绘制一个点就行
       //_paintPoint(canvas, paint, point);
@@ -483,6 +543,7 @@ class StrokeCanvasPainter {
     Alignment alignment = Alignment.center,
     BoxFit fit = BoxFit.fill,
     ColorFilter? colorFilter,
+    int alpha = 255,
   }) {
     if (_isDispose) return;
 
@@ -504,6 +565,7 @@ class StrokeCanvasPainter {
       alignment: alignment,
       fit: fit,
       colorFilter: colorFilter,
+      alpha: alpha,
     );
 
     _addPaintable(img);
