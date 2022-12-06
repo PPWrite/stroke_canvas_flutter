@@ -152,7 +152,7 @@ class _StrokeCanvasDemoState extends State<StrokeCanvasDemo> {
       _autoDrawPoint += 0.5;
       _autoDrawCount++;
 
-      print("_autoDrawCount: $_autoDrawCount");
+      // print("_autoDrawCount: $_autoDrawCount");
       if (_autoDrawPoint > size.width) {
         _painter.newLine();
       } else if (_autoDrawPoint > size.width * size.height) {

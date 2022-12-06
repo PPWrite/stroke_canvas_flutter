@@ -33,7 +33,7 @@ class _StrokeCanvasPaintablePath extends _StrokeCanvasPaintable {
           ..style = PaintingStyle.fill
           ..filterQuality = ui.FilterQuality.medium
           ..blendMode = isEraser ? BlendMode.clear : BlendMode.srcOver {
-    _cacheHash = hashValues(_cacheHash, _color.value);
+    _cacheHash = Object.hash(_cacheHash, _color.value);
   }
 
   int _cacheHash = 0;
@@ -61,7 +61,7 @@ class _StrokeCanvasPaintablePath extends _StrokeCanvasPaintable {
         2 * pi);
     _isEmpty = false;
     // 重新计算hash
-    _cacheHash = hashValues(_cacheHash, point);
+    _cacheHash = Object.hash(_cacheHash, point);
   }
 
   /// 添加一条线。
@@ -74,8 +74,8 @@ class _StrokeCanvasPaintablePath extends _StrokeCanvasPaintable {
   ) {
     _isEmpty = false;
 
-    _cacheHash = hashValues(_cacheHash, p1);
-    _cacheHash = hashValues(_cacheHash, p2);
+    _cacheHash = Object.hash(_cacheHash, p1);
+    _cacheHash = Object.hash(_cacheHash, p2);
 
     // 两个点相减得到一个向量， 并进行标准化，然后逆时针旋转90度。
     final perpendicular = (p2 - p1).normalize().perpendicular();
@@ -140,11 +140,6 @@ class _StrokeCanvasPaintablePath extends _StrokeCanvasPaintable {
   }
 
   @override
-  void dispose() {
-    super.dispose();
-  }
-
-  @override
   int get hashCode => _cacheHash;
 
   @override
@@ -163,7 +158,7 @@ class _StrokeCanvasPaintableImage extends _StrokeCanvasPaintable {
     this.alignment = Alignment.topLeft,
     this.fit = BoxFit.fill,
     this.colorFilter,
-  }) : _cacheHash = hashValues(
+  }) : _cacheHash = Object.hash(
           image.image,
           width,
           height,
@@ -229,14 +224,12 @@ class _StrokeCanvasPaintablePictrue extends _StrokeCanvasPaintable {
     required this.picture,
     required this.width,
     required this.height,
-    this.pixelRatio = 1,
   }) {
-    _cacheHash = hashValues(_cacheHash, picture);
+    _cacheHash = Object.hash(_cacheHash, picture);
   }
   final ui.Picture picture;
   final double width;
   final double height;
-  final double pixelRatio;
 
   @override
   void dispose() {
@@ -303,13 +296,13 @@ class _StrokeCanvasPaintableList<M extends _StrokeCanvasPaintable>
   @override
   void add(M paintable) {
     _paintables.add(paintable);
-    _cacheHash = ui.hashValues(_cacheHash, paintable);
+    _cacheHash = Object.hash(_cacheHash, paintable);
   }
 
   @override
   void insert(int index, M paintable) {
     _paintables.insert(index, paintable);
-    _cacheHash = ui.hashValues(_cacheHash, paintable, index);
+    _cacheHash = Object.hash(_cacheHash, paintable, index);
   }
 
   @override
@@ -458,7 +451,7 @@ class _StrokeCanvasPaintableList<M extends _StrokeCanvasPaintable>
   @override
   void addAll(Iterable<M> iterable) {
     _paintables.addAll(iterable);
-    _cacheHash = ui.hashValues(_cacheHash, iterable.hashCode);
+    _cacheHash = Object.hash(_cacheHash, iterable.hashCode);
   }
 
   @override
@@ -504,7 +497,7 @@ class _StrokeCanvasPaintableList<M extends _StrokeCanvasPaintable>
   @override
   void insertAll(int index, Iterable<M> iterable) {
     _paintables.insertAll(index, iterable);
-    _cacheHash = ui.hashValues(_cacheHash, iterable, index);
+    _cacheHash = Object.hash(_cacheHash, iterable, index);
   }
 
   @override
@@ -531,7 +524,7 @@ class _StrokeCanvasPaintableList<M extends _StrokeCanvasPaintable>
   bool remove(Object? value) {
     final res = _paintables.remove(value);
     if (res) {
-      _cacheHash = ui.hashList(_paintables);
+      _cacheHash = Object.hashAll(_paintables);
     }
     return res;
   }
@@ -539,7 +532,7 @@ class _StrokeCanvasPaintableList<M extends _StrokeCanvasPaintable>
   @override
   M removeAt(int index) {
     final res = _paintables.removeAt(index);
-    _cacheHash = ui.hashList(_paintables);
+    _cacheHash = Object.hashAll(_paintables);
 
     return res;
   }
@@ -547,7 +540,7 @@ class _StrokeCanvasPaintableList<M extends _StrokeCanvasPaintable>
   @override
   M removeLast() {
     final res = _paintables.removeLast();
-    _cacheHash = ui.hashList(_paintables);
+    _cacheHash = Object.hashAll(_paintables);
 
     return res;
   }
@@ -555,25 +548,25 @@ class _StrokeCanvasPaintableList<M extends _StrokeCanvasPaintable>
   @override
   void removeRange(int start, int end) {
     _paintables.removeRange(start, end);
-    _cacheHash = ui.hashList(_paintables);
+    _cacheHash = Object.hashAll(_paintables);
   }
 
   @override
   void removeWhere(bool Function(M element) test) {
     _paintables.removeWhere(test);
-    _cacheHash = ui.hashList(_paintables);
+    _cacheHash = Object.hashAll(_paintables);
   }
 
   @override
   void replaceRange(int start, int end, Iterable<M> replacements) {
     _paintables.replaceRange(start, end, replacements);
-    _cacheHash = ui.hashList(_paintables);
+    _cacheHash = Object.hashAll(_paintables);
   }
 
   @override
   void retainWhere(bool Function(M element) test) {
     _paintables.retainWhere(test);
-    _cacheHash = ui.hashList(_paintables);
+    _cacheHash = Object.hashAll(_paintables);
   }
 
   @override
@@ -582,25 +575,25 @@ class _StrokeCanvasPaintableList<M extends _StrokeCanvasPaintable>
   @override
   void setAll(int index, Iterable<M> iterable) {
     _paintables.setAll(index, iterable);
-    _cacheHash = ui.hashList(_paintables);
+    _cacheHash = Object.hashAll(_paintables);
   }
 
   @override
   void setRange(int start, int end, Iterable<M> iterable, [int skipCount = 0]) {
     _paintables.setRange(start, end, iterable);
-    _cacheHash = ui.hashList(_paintables);
+    _cacheHash = Object.hashAll(_paintables);
   }
 
   @override
   void shuffle([Random? random]) {
     _paintables.shuffle(random);
-    _cacheHash = ui.hashList(_paintables);
+    _cacheHash = Object.hashAll(_paintables);
   }
 
   @override
   void sort([int Function(M a, M b)? compare]) {
     _paintables.sort(compare);
-    _cacheHash = ui.hashList(_paintables);
+    _cacheHash = Object.hashAll(_paintables);
   }
 
   @override

@@ -5,11 +5,8 @@ const String kStrokeCanvasPainterDefaultPenId = "robot_pen";
 class _StrokeCanvasPen {
   _StrokeCanvasPen({
     required this.onClosedPath,
-    this.strokeWidth = 3,
     Color lineColor = Colors.black,
     bool isEraser = false,
-    this.eraserWidth = 30,
-    this.previousPoint,
   })  : _lineColor = lineColor,
         path = _StrokeCanvasPaintablePath(
             color: isEraser ? Colors.transparent : lineColor,
@@ -17,10 +14,10 @@ class _StrokeCanvasPen {
         _isEraser = isEraser;
 
   /// 默认的笔画宽度。
-  double strokeWidth;
+  double strokeWidth = 3;
 
   /// 默认的橡皮宽度。
-  double eraserWidth;
+  double eraserWidth = 30;
 
   /// 关闭路径的回调
   void Function(_StrokeCanvasPaintablePath path) onClosedPath;
@@ -168,7 +165,7 @@ class _StrokeCanvasPoint {
   }
 
   @override
-  int get hashCode => hashValues(x, y, w);
+  int get hashCode => Object.hash(x, y, w);
 
   @override
   bool operator ==(Object other) {

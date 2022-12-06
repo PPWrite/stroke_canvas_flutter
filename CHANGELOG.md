@@ -1,3 +1,8 @@
+## 0.0.10
+
+* Add `pathType` and `pathAlpha` property.
+* `drawImage` add `alpha` argument.
+
 ## 0.0.9
 
 * Optimize memory usage.
