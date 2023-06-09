@@ -1,3 +1,8 @@
+## 0.1.0
+
+* update 'penId'.
+* update sdk.
+
 ## 0.0.10
 
 * Add `pathType` and `pathAlpha` property.

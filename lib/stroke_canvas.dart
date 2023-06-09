@@ -28,11 +28,10 @@ class StrokeCanvas extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _StrokeCanvasState createState() => _StrokeCanvasState();
+  State<StrokeCanvas> createState() => _StrokeCanvasState();
 }
 
-class _StrokeCanvasState extends State<StrokeCanvas>
-    with SingleTickerProviderStateMixin {
+class _StrokeCanvasState extends State<StrokeCanvas> with SingleTickerProviderStateMixin {
   late Ticker _canvsTicker;
 
   @override
@@ -51,10 +50,10 @@ class _StrokeCanvasState extends State<StrokeCanvas>
     final size = widget.size ?? Size.zero;
 
     if (widget.painter._mode == StrokeCanvasPaintMode.hd) {
-      _StrokeCanvasPaintableList _paintableList = _StrokeCanvasPaintableList();
+      _StrokeCanvasPaintableList paintableList = _StrokeCanvasPaintableList();
       for (var info in widget.painter._pens.values) {
         if (info.path.isNotEmpty) {
-          _paintableList.add(info.path);
+          paintableList.add(info.path);
         }
       }
 
@@ -63,7 +62,7 @@ class _StrokeCanvasState extends State<StrokeCanvas>
       widgets.add(CustomPaint(
         isComplex: true,
         painter: _StrokeCanvasCustomPainter(
-          paintable: _paintableList,
+          paintable: paintableList,
           pixelRatio: pixelRatio,
           painter: widget.painter,
         ),
@@ -77,16 +76,16 @@ class _StrokeCanvasState extends State<StrokeCanvas>
         ),
       );
     } else {
-      _StrokeCanvasPaintableList _paintableList = _StrokeCanvasPaintableList();
+      _StrokeCanvasPaintableList paintableList = _StrokeCanvasPaintableList();
       // 以下顺序不可乱：
       // 1. 添加正在合并中的可绘制对象，因为这些事最早绘制的数据
-      _paintableList.addAll(widget.painter._mergingPaintables);
+      paintableList.addAll(widget.painter._mergingPaintables);
       // 2. 添加可绘制对象
-      _paintableList.addAll(widget.painter._paintables);
+      paintableList.addAll(widget.painter._paintables);
       // 3. 添加还没关闭的路径，这些事最新的绘制数据
       for (var info in widget.painter._pens.values) {
         if (info.path.isNotEmpty) {
-          _paintableList.add(info.path);
+          paintableList.add(info.path);
         }
       }
 
@@ -94,7 +93,7 @@ class _StrokeCanvasState extends State<StrokeCanvas>
         child: CustomPaint(
           isComplex: true,
           painter: _StrokeCanvasCustomPainter(
-            paintable: _paintableList,
+            paintable: paintableList,
             pixelRatio: pixelRatio,
             painter: widget.painter,
           ),

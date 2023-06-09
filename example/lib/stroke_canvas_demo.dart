@@ -9,7 +9,7 @@ class StrokeCanvasDemo extends StatefulWidget {
   const StrokeCanvasDemo({Key? key}) : super(key: key);
 
   @override
-  _StrokeCanvasDemoState createState() => _StrokeCanvasDemoState();
+  State<StrokeCanvasDemo> createState() => _StrokeCanvasDemoState();
 }
 
 class _StrokeCanvasDemoState extends State<StrokeCanvasDemo> {
@@ -142,7 +142,6 @@ class _StrokeCanvasDemoState extends State<StrokeCanvasDemo> {
 
   bool _autoDraw = false;
   double _autoDrawPoint = 0;
-  int _autoDrawCount = 0;
   Future<void> autoDraw() async {
     if (!_autoDraw) return;
 
@@ -154,9 +153,7 @@ class _StrokeCanvasDemoState extends State<StrokeCanvasDemo> {
       _painter.drawPoint(x, y + 100);
 
       _autoDrawPoint += 0.5;
-      _autoDrawCount++;
 
-      // print("_autoDrawCount: $_autoDrawCount");
       if (_autoDrawPoint > size.width) {
         _painter.newLine();
       } else if (_autoDrawPoint > size.width * size.height) {
@@ -176,7 +173,6 @@ class _StrokeCanvasDemoState extends State<StrokeCanvasDemo> {
       elevation: 1,
       focusElevation: 1,
       onPressed: () {
-        _autoDrawCount = 0;
         _autoDrawPoint = 0;
         _autoDraw = false;
         _painter.clean();
