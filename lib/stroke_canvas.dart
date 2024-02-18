@@ -37,7 +37,7 @@ class _StrokeCanvasState extends State<StrokeCanvas> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    ui.Paint.enableDithering = true;
+    //ui.Paint.enableDithering = true;
     // 帧回调
     _canvsTicker = createTicker((elapsed) => _drawIfNeed())..start();
   }
